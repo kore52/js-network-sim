@@ -12,6 +12,16 @@ $(document).ready(function(){
     }
   })())
 
+  /**
+      Test case
+
+        192.168.0.0/24      192.168.20.0/24     192.168.10.0/24
+      -------          ---------          ---------          -------
+      | PC1 | -------- | L3SW1 | ---------| L3SW2 | -------- | PC2 |
+      -------          ---------          ---------          -------
+       send                                                 receive
+
+  */
   var PC1 = new Layer3Device([new Interface('eth0')], function(srcPort, data){
     if (new MAC(data.destinationMACAddress).equals('11-22-33-44-55-01'))
       console.log(JSON.stringify(data))
@@ -39,7 +49,7 @@ $(document).ready(function(){
     ['L31port0', '192.168.0.254', '255.255.255.0'],
     ['L31port1', '192.168.20.254', '255.255.255.0']
   ])
-  .setRoute([new Route('static', '192.168.10.0', '255.255.255.0', '192.168.20.253', 'L31port0')])
+  .setRoute([new Route('static', '192.168.10.0', '255.255.255.0', '192.168.20.253', 'L31port1')])
 
   var L3SW2 = new Layer3Device([new Interface('L32port0'), new Interface('L32port1')])
   .setMAC([
@@ -57,7 +67,5 @@ $(document).ready(function(){
   L3SW1.connect('L31port1', L3SW2.getInterface('L32port0'))
 
   PC1.send('eth0', new IPv4('192.168.10.1'), "PC1->PC2")
-  $('#result').html(JSON.stringify(L3SW1.route, null, 2))
-
 
 })

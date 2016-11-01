@@ -61,18 +61,34 @@ function MAC(macAddr) {
 /**
  * ネットワークインターフェイス
  * @param {string}      name             インターフェイス名
- * @param {MAC}         mac              MACアドレス
  * @param {number}      vlan             VLAN_ID(0-4095)、default:1
  * @param {boolean}     isTrunk          true:トランクポート, false:アクセスポート(default)
  * @param {array|Range} trunkAllowedVlan トランクポート時許可するvlanの配列もしくは範囲
+ * @param {MAC}         mac              MACアドレス
+ * @param {IPv4}        ip               IPアドレス
+ * @param {IPv4}        mask             サブネットマスク
  */
-function Interface(name, vlan = 1, isTrunk = false, trunkAllowedVlan = null) {
+function Interface(
+  name,
+  vlan = 1,
+  isTrunk = false,
+  trunkAllowedVlan = null,
+  mac = null,
+  ip = null,
+  mask = null
+ ) {
 
   this.name = name
   this.vlan = vlan
   this.isConnect = false
   this.isTrunk = isTrunk
   this.trunkAllowedVlan = (trunkAllowedVlan) ? trunkAllowedVlan : new Range(0, 4095)
+  this.mac = mac
+  this.ip = ip
+  this.mask = mask
+  this.isSwitchPort = (ip) ? false : true
+
+  return this
 }
 (function(){
 
@@ -156,10 +172,11 @@ function Layer2Device(interfaces, receiveCallBack) {
 }
 (function(){
 
-  /* データ受信コールバック関数が定義されていない場合のデフォルト動作
+  /**
+   * データ受信コールバック関数が定義されていない場合のデフォルト動作
    * 他のインターフェイスにフレームを転送する動作をする(L2スイッチ)
    * @param {Interface} srcDevice 送信元デバイスのインターフェイス
-   * @param {object}    recv      受信データ
+   * @param {object} recv         受信データ
    */
   Layer2Device.prototype.receive = function(srcDevice, recv) {
 
@@ -175,10 +192,10 @@ function Layer2Device(interfaces, receiveCallBack) {
 
   /**
    * 受信したL2フレームを宛先MACアドレスからデバイス内の別ポートに転送する
-   * @param {object} srcPort 送信元ポート名
-   * @param {MAC}    srcMAC  送信元MACアドレス
-   * @param {MAC}    destMAC 宛先MACアドレス
-   * @param {object} frame   送信データ
+   * @param {Interface} srcPort 送信元インターフェイス
+   * @param {MAC} srcMAC        送信元MACアドレス
+   * @param {MAC} destMAC       宛先MACアドレス
+   * @param {object} frame      送信データ
    */
   Layer2Device.prototype.transfer = function(srcPort, srcMAC, destMAC, frame) {
 
@@ -207,6 +224,7 @@ function Layer2Device(interfaces, receiveCallBack) {
    * MACアドレスの設定
    * (e.g.)
    * var L2 = new Layer2Device(...).setMAC([['eth0', '00-00-00-00-00-00']])
+   * @param {array} ifname_and_mac インターフェイス名とMACアドレスが要素の配列
    */
   Layer2Device.prototype.setMAC = function(ifname_and_mac) {
     if (!(ifname_and_mac instanceof Array)) return this
@@ -452,7 +470,7 @@ function Connection() {
     var dest = this.otherSide(src)
     if (dest == null) throw new Error('connection not established : ' + e)
 
-    dest.device.receive(src, data)
+    dest.device.receive(dest, data)
   }
 
   Connection.prototype.otherSide = function(one) {

@@ -138,20 +138,27 @@ function Layer3Device(interfaces, receiveCallBack) {
   /**
    * L3 パケットの受信
    * TODO: 巨大になったら分割
-   * @param {Interface} srcPort 外部から受信したインターフェイス名
+   * @param {Interface} srcPort 外部から受信したインターフェイス
    * @param {object}    recv    受信データ
    */
   Layer3Device.prototype.receive = function(srcPort, recv) {
 
+    // L2ポートである場合はL2スイッチと同様の動作
+    if (srcPort.isSwitchPort) {
+      Layer2Device.prototype.transfer.call(this, srcPort, new MAC(recv.sourceMACAddress), new MAC(recv.destinationMACAddress), recv)
+      return
+    }
+
+
     if (recv.data.protocol == 'arp' && recv.data.operation == '1') {
-      var sender = srcPort.getConnection().otherSide(srcPort)
-      this.sendARPResponse(sender, recv)
+      //var sender = srcPort.getConnection().otherSide(srcPort)
+      this.sendARPResponse(srcPort, recv)
       return
     }
 
     if (recv.data.protocol == 'arp' && recv.data.operation == '2') {
-      var recievedInterface = srcPort.getConnection().otherSide(srcPort)
-      this.arp.push([recievedInterface.name, recv.data.sourceIPAddress, recv.data.sourceMACAddress, 'dynamic'])
+      //var recievedInterface = srcPort.getConnection().otherSide(srcPort)
+      this.arp.push([srcPort.name, recv.data.sourceIPAddress, recv.data.sourceMACAddress, 'dynamic'])
       return
     }
 
@@ -177,9 +184,10 @@ function Layer3Device(interfaces, receiveCallBack) {
       return // 適切なルートが存在しないためパケット破棄
 
     var nextHopAddr
+    // if nextHop is IP address
     if (IPv4.isValid(route.nextHop)) {
       nextHopAddr = new IPv4(route.nextHop)
-      this.sendARPRequest(srcPort, nextHopAddr)
+      this.sendARPRequest(this.getInterface(route.portName), nextHopAddr)
     } else {
       // if nextHop is interface name
       nextHopAddr = new IPv4(frame.data.destinationIPAddress)
@@ -203,7 +211,7 @@ function Layer3Device(interfaces, receiveCallBack) {
     var packet = {
       'sourceIPAddress' : frame.data.sourceIPAddress,
       'destinationIPAddress' : frame.data.destinationIPAddress,
-      'data' : frame.data
+      'data' : frame.data.data
     }
 
     Layer2Device.prototype.send.call(this, nextSrcPortName, nextHopMAC, packet)
@@ -220,6 +228,7 @@ function Layer3Device(interfaces, receiveCallBack) {
     for (var i=0; i < ifname_and_ip.length; i++) {
       this.getInterface(ifname_and_ip[i][0]).ip = new IPv4(ifname_and_ip[i][1])
       this.getInterface(ifname_and_ip[i][0]).mask = (ifname_and_ip[i][2]) ? new IPv4(ifname_and_ip[i][2]) : new IPv4('255.255.255.255')
+      this.getInterface(ifname_and_ip[i][0]).isSwitchPort = false
     }
 
     this._addDirectConnectionRoute()
@@ -316,12 +325,13 @@ function Layer3Device(interfaces, receiveCallBack) {
 
   /**
    * ARP応答を送信する
-   * @param {Interface} srcPort      送信するポート
-   * @param {object}    receivedData ARPリクエストを含むデータ
+   * @param {Interface} srcPort    送信するポート
+   * @param {object}    recv       ARPリクエストを含むデータ
    */
-  Layer3Device.prototype.sendARPResponse = function(srcPort, receivedData) {
+  Layer3Device.prototype.sendARPResponse = function(srcPort, recv) {
 
-    if (!srcPort.ip.equals(receivedData.data.destinationIPAddress))
+    // 問い合わせIPアドレスを持っていなければ応答しない
+    if (!srcPort.ip.equals(recv.data.destinationIPAddress))
       return
 
     var arpRes = {
@@ -329,8 +339,8 @@ function Layer3Device(interfaces, receiveCallBack) {
       'operation' : '2',
       'sourceIPAddress' : srcPort.ip.str(),
       'sourceMACAddress' : srcPort.mac.str(),
-      'destinationIPAddress' : receivedData.sourceIPAddress,
-      'destinationMACAddress' : receivedData.sourceMACAddress
+      'destinationIPAddress' : recv.data.sourceIPAddress,
+      'destinationMACAddress' : recv.data.sourceMACAddress
     }
     Layer2Device.prototype.send.call(this, srcPort.name, new MAC(arpRes.destinationMACAddress), arpRes)
   }
