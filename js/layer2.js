@@ -172,6 +172,37 @@ function Layer2Device(interfaces, receiveCallBack) {
     this.transfer(srcSwitchPort, new MAC(recv.sourceMACAddress), new MAC(recv.destinationMACAddress), recv)
   }
 
+
+  /**
+   * 受信したL2フレームを宛先MACアドレスからデバイス内の別ポートに転送する
+   * @param {object} srcPort 送信元ポート名
+   * @param {MAC}    srcMAC  送信元MACアドレス
+   * @param {MAC}    destMAC 宛先MACアドレス
+   * @param {object} frame   送信データ
+   */
+  Layer2Device.prototype.transfer = function(srcPort, srcMAC, destMAC, frame) {
+
+    this._addMacTable(srcPort.name, srcMAC)
+
+    // ブロードキャストを処理
+    if (destMAC.equals('ff-ff-ff-ff-ff-ff')) {
+      this._sendBroadcast(srcPort, this.interfaces, frame)
+      return
+    }
+
+    // ユニキャスト
+    var destPort = this._searchPort(destMAC)
+    if (destPort.length) {
+      frame = this._processVlan(srcPort, destPort[0], frame)
+      if (frame)
+        destPort[0].transfer(frame)
+    } else {
+      // MACテーブルに登録されていないのでブロードキャストする
+      this._sendBroadcast(srcPort, this.interfaces, frame)
+    }
+  }
+
+
   /**
    * MACアドレスの設定
    * (e.g.)
@@ -244,35 +275,6 @@ function Layer2Device(interfaces, receiveCallBack) {
         this.interfaces[i].getConnection().transfer(this.interfaces[i], frame)
         return
       }
-    }
-  }
-
-  /**
-   * 受信したL2フレームを宛先MACアドレスからデバイス内の別ポートに転送する
-   * @param {object} srcPort 送信元ポート名
-   * @param {MAC}    srcMAC  送信元MACアドレス
-   * @param {MAC}    destMAC 宛先MACアドレス
-   * @param {object} frame   送信データ
-   */
-  Layer2Device.prototype.transfer = function(srcPort, srcMAC, destMAC, frame) {
-
-    this._addMacTable(srcPort.name, srcMAC)
-
-    // ブロードキャストを処理
-    if (destMAC.equals('ff-ff-ff-ff-ff-ff')) {
-      this._sendBroadcast(srcPort, this.interfaces, frame)
-      return
-    }
-
-    // ユニキャスト
-    var destPort = this._searchPort(destMAC)
-    if (destPort.length) {
-      frame = this._processVlan(srcPort, destPort[0], frame)
-      if (frame)
-        destPort[0].transfer(frame)
-    } else {
-      // MACテーブルに登録されていないのでブロードキャストする
-      this._sendBroadcast(srcPort, this.interfaces, frame)
     }
   }
 
@@ -449,8 +451,7 @@ function Connection() {
   Connection.prototype.transfer = function(src, data) {
     var dest = this.otherSide(src)
     if (dest == null) throw new Error('connection not established : ' + e)
-    if (dest.device.constructor.name == 'Layer3Device')
-      console.log(dest.device.constructor.name)
+
     dest.device.receive(src, data)
   }
 
