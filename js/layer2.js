@@ -72,21 +72,15 @@ function Interface(
   name,
   vlan = 1,
   isTrunk = false,
-  trunkAllowedVlan = null,
-  mac = null,
-  ip = null,
-  mask = null
+  trunkAllowedVlan = null
  ) {
 
   this.name = name
   this.vlan = vlan
   this.isConnect = false
   this.isTrunk = isTrunk
+  this.isSwitchPort = true
   this.trunkAllowedVlan = (trunkAllowedVlan) ? trunkAllowedVlan : new Range(0, 4095)
-  this.mac = mac
-  this.ip = ip
-  this.mask = mask
-  this.isSwitchPort = (ip) ? false : true
 
   return this
 }

@@ -162,6 +162,12 @@ function Layer3Device(interfaces, receiveCallBack) {
       return
     }
 
+
+    if (recv.data.data.protocol == 'icmp') {
+      this.sendICMPEchoReply(srcPort, recv)
+      return
+    }
+
     if (this.receiveCallBack) {
       this.receiveCallBack(srcPort, recv)
     } else {
@@ -281,8 +287,7 @@ function Layer3Device(interfaces, receiveCallBack) {
       nextHopAddr = destIPaddr
     }
 
-    this.sendARPRequest(this.getInterface(srcPortName), nextHopAddr)
-
+    // ARPキャッシュを参照
     var nextHopMAC
     for (var i = 0; i < this.arp.length; i++) {
       var arp = this.arp[i]
@@ -291,7 +296,20 @@ function Layer3Device(interfaces, receiveCallBack) {
         break
       }
     }
-    if (!nextHopMAC) return
+    if (!nextHopMAC){
+      // ARPキャッシュに見つからなかった場合はARPリクエストを送信
+      this.sendARPRequest(this.getInterface(srcPortName), nextHopAddr)
+      for (var i = 0; i < this.arp.length; i++) {
+        var arp = this.arp[i]
+        if (nextHopAddr.equals(arp[1])) {
+          nextHopMAC = new MAC(arp[2])
+          break
+        }
+      }
+      if (!nextHopMAC)
+        return // MACアドレスが見つからないため、パケット破棄
+    }
+
 
     var packet = {
       'sourceIPAddress' : srcIPaddr,
@@ -331,7 +349,7 @@ function Layer3Device(interfaces, receiveCallBack) {
   Layer3Device.prototype.sendARPResponse = function(srcPort, recv) {
 
     // 問い合わせIPアドレスを持っていなければ応答しない
-    if (!srcPort.ip.equals(recv.data.destinationIPAddress))
+    if (!srcPort['ip'] || !srcPort.ip.equals(recv.data.destinationIPAddress))
       return
 
     var arpRes = {
@@ -345,15 +363,49 @@ function Layer3Device(interfaces, receiveCallBack) {
     Layer2Device.prototype.send.call(this, srcPort.name, new MAC(arpRes.destinationMACAddress), arpRes)
   }
 
+  /**
+   * ICMPを送信する
+   */
+  Layer3Device.prototype.sendICMPEcho = function(srcPortName, targetIP, sequence) {
+
+    var icmpReq = {
+      'protocol' : 'icmp',
+      'type' : 8, // icmp echo
+      'code' : 0,
+      'checksum' : 'dummy',
+      'identifier' : 0,
+      'sequence' : sequence,
+      'data' : 'abcdefghijklmnopqrstuvwabcdefghi'
+    }
+    this.send(srcPortName, targetIP, icmpReq)
+  }
+
+  /**
+   * ICMP Echo Reply
+   *
+   */
+  Layer3Device.prototype.sendICMPEchoReply = function(srcPort, recv) {
+    var icmpRes = {
+      'protocol' : 'icmp',
+      'type' : 0, // icmp echo reply
+      'code' : 0,
+      'checksum' : 'dummy',
+      'identifier' : 0,
+      'sequence' : recv.data.data.sequence,
+      'data' : 'abcdefghijklmnopqrstuvwabcdefghi'
+    }
+    this.send(srcPort.name, recv.data.sourceIPAddress, icmpRes)
+  }
 
   /**
    * private
-   * 直接接続ルートの追加
+   * 直接接続ルートの追加 ( ip/32 と ip & mask を追加)
    */
   Layer3Device.prototype._addDirectConnectionRoute = function() {
     for (var i = 0; i < this.interfaces.length; i++) {
       var val = this.interfaces[i]
-      this.route.push(new Route('direct', val.ip, val.mask, val.name, val.name, 0))
+      this.route.push(new Route('direct', val.ip, new IPv4('255.255.255.255'), val.name, val.name, 0))
+      this.route.push(new Route('direct', val.ip.networkAddr(val.mask), val.mask, val.name, val.name, 0))
     }
   }
 
