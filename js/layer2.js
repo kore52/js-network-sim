@@ -132,7 +132,7 @@ function Interface(
     // 接続されていない場合は破棄
     if (!this.isConnect) return
 
-    this.connection.transfer(this, data)
+    return this.connection.transfer(this, data)
   }
 
   /**
@@ -175,12 +175,11 @@ function Layer2Device(interfaces, receiveCallBack) {
   Layer2Device.prototype.receive = function(srcDevice, recv) {
 
     if (this.receiveCallback) {
-      this.receiveCallback(srcDevice, recv)
-      return
+      return this.receiveCallback(srcDevice, recv)
     }
 
     var srcSwitchPort = srcDevice.getConnection().otherSide(srcDevice)
-    this.transfer(srcSwitchPort, new MAC(recv.sourceMACAddress), new MAC(recv.destinationMACAddress), recv)
+    return this.transfer(srcSwitchPort, new MAC(recv.sourceMACAddress), new MAC(recv.destinationMACAddress), recv)
   }
 
 
@@ -197,8 +196,7 @@ function Layer2Device(interfaces, receiveCallBack) {
 
     // ブロードキャストを処理
     if (destMAC.equals('ff-ff-ff-ff-ff-ff')) {
-      this._sendBroadcast(srcPort, this.interfaces, frame)
-      return
+      return this._sendBroadcast(srcPort, this.interfaces, frame)
     }
 
     // ユニキャスト
@@ -206,11 +204,11 @@ function Layer2Device(interfaces, receiveCallBack) {
     if (destPort.length) {
       frame = this._processVlan(srcPort, destPort[0], frame)
       if (frame)
-        destPort[0].transfer(frame)
-    } else {
-      // MACテーブルに登録されていないのでブロードキャストする
-      this._sendBroadcast(srcPort, this.interfaces, frame)
+        return destPort[0].transfer(frame)
     }
+
+    // MACテーブルに登録されていないのでブロードキャストする
+    return this._sendBroadcast(srcPort, this.interfaces, frame)
   }
 
 
@@ -284,8 +282,7 @@ function Layer2Device(interfaces, receiveCallBack) {
 
     for (var i=0; i < this.interfaces.length; i++) {
       if (srcPortName === this.interfaces[i].name) {
-        this.interfaces[i].getConnection().transfer(this.interfaces[i], frame)
-        return
+        return this.interfaces[i].getConnection().transfer(this.interfaces[i], frame)
       }
     }
   }
@@ -343,7 +340,7 @@ function Layer2Device(interfaces, receiveCallBack) {
 
       var processedFrame = this._processVlan(srcPort, interfaces[i], frame)
       if (processedFrame)
-        interfaces[i].transfer(processedFrame)
+        return interfaces[i].transfer(processedFrame)
     }
   }
 
@@ -464,7 +461,7 @@ function Connection() {
     var dest = this.otherSide(src)
     if (dest == null) throw new Error('connection not established : ' + e)
 
-    dest.device.receive(dest, data)
+    return dest.device.receive(dest, data)
   }
 
   Connection.prototype.otherSide = function(one) {
