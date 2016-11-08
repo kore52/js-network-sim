@@ -92,7 +92,7 @@ function IPv4(ip) {
    * 比較
    */
   IPv4.prototype.equals = function(to) {
-    return (this.uint() == new IPv4(to).uint())
+    return (this.uint() === new IPv4(to).uint())
   }
 }())
 
@@ -106,13 +106,13 @@ function IPv4(ip) {
  * @param {string}    portName インターフェイス名
  * @param {number}    distance Administrative Distance/Route Preference
  */
-function Route(type, net, mask, nextHop, portName, distance = 0) {
+function Route(type, net, mask, nextHop, portName, distance) {
   this.type = type
   this.net = new IPv4(net)
   this.mask = new IPv4(mask)
   this.nextHop = nextHop
   this.portName = portName
-  this.distance = distance
+  this.distance = (distance !== undefined) ? distance : 0
 }
 Route.prototype.constructor = Route
 
@@ -120,17 +120,17 @@ Route.prototype.constructor = Route
 /**
  * レイヤー3デバイスを表現するクラス
  */
-function Layer3Device(interfaces, receiveCallBack = null, tcpReceiveCallback = null) {
+function Layer3Device(interfaces, receiveCallBack, tcpReceiveCallback) {
   Layer2Device.call(this, interfaces, receiveCallBack)
   this.arp = []
   this.route = []
   this.sequence = 0
   this.tcp = {}
 
-  if (receiveCallBack) {
+  if (typeof receiveCallBack === 'function') {
     this.receiveCallBack = receiveCallBack
   }
-  if (tcpReceiveCallback) {
+  if (typeof tcpReceiveCallback === 'function') {
     this.tcpReceiveCallback = tcpReceiveCallback
   }
 
@@ -153,12 +153,12 @@ function Layer3Device(interfaces, receiveCallBack = null, tcpReceiveCallback = n
       return Layer2Device.prototype.transfer.call(this, srcPort, new MAC(recv.sourceMACAddress), new MAC(recv.destinationMACAddress), recv)
     }
 
-    if (recv.data.protocol == 'arp' && recv.data.operation == '1') {
+    if (recv.data.protocol === 'arp' && recv.data.operation === '1') {
       //var sender = srcPort.getConnection().otherSide(srcPort)
       return this.sendARPResponse(srcPort, recv)
     }
 
-    if (recv.data.protocol == 'arp' && recv.data.operation == '2') {
+    if (recv.data.protocol === 'arp' && recv.data.operation === '2') {
       //var recievedInterface = srcPort.getConnection().otherSide(srcPort)
       return this.arp.push([srcPort.name, recv.data.sourceIPAddress, recv.data.sourceMACAddress, 'dynamic'])
     }
@@ -166,12 +166,12 @@ function Layer3Device(interfaces, receiveCallBack = null, tcpReceiveCallback = n
     var L3packet = recv.data
 
     // receive ICMP Echo reply
-    if (L3packet.data.protocol == 'icmp' && L3packet.data.type == 8) {
+    if (L3packet.data.protocol === 'icmp' && L3packet.data.type === 8) {
       return this.sendICMPEchoReply(srcPort, recv)
     }
 
     // receive tcp
-    if (L3packet.data.protocol == 'tcp') {
+    if (L3packet.data.protocol === 'tcp') {
 
       if (this.tcp[L3packet.data.destinationPort] === undefined) {
         this.tcp[L3packet.data.destinationPort] = {}
@@ -186,12 +186,12 @@ function Layer3Device(interfaces, receiveCallBack = null, tcpReceiveCallback = n
         !L3packet.data.fin
       ) {
         if (this.tcp[L3packet.data.destinationPort].status === undefined ||
-           this.tcp[L3packet.data.destinationPort].status == 'LISTEN')
+           this.tcp[L3packet.data.destinationPort].status === 'LISTEN')
         {
           this.tcp[L3packet.data.destinationPort].status = 'SYN_RECEIVED'
           return this.sendTCPAckSyn(srcPort, recv)
         }
-        else if (this.tcp[L3packet.data.destinationPort].status == 'ESTABLISHED') {
+        else if (this.tcp[L3packet.data.destinationPort].status === 'ESTABLISHED') {
           if (this.tcpReceiveCallback) {
             this.tcpReceiveCallback(srcPort, recv)
           }
@@ -207,7 +207,7 @@ function Layer3Device(interfaces, receiveCallBack = null, tcpReceiveCallback = n
         L3packet.data.syn &&
         !L3packet.data.fin
       ) {
-        if (this.tcp[L3packet.data.destinationPort].status == 'SYN_SENT') {
+        if (this.tcp[L3packet.data.destinationPort].status === 'SYN_SENT') {
           this.tcp[L3packet.data.destinationPort].status = 'ESTABLISHED'
           return this.sendTCPAck(srcPort, recv)
         }
@@ -221,7 +221,7 @@ function Layer3Device(interfaces, receiveCallBack = null, tcpReceiveCallback = n
         !L3packet.data.syn &&
         !L3packet.data.fin
       ) {
-        if (this.tcp[L3packet.data.destinationPort].status == 'SYN_RECEIVED') {
+        if (this.tcp[L3packet.data.destinationPort].status === 'SYN_RECEIVED') {
           this.tcp[L3packet.data.destinationPort].status = 'ESTABLISHED'
           return true
         }
@@ -306,7 +306,7 @@ function Layer3Device(interfaces, receiveCallBack = null, tcpReceiveCallback = n
    * スタティックルーティングの設定
    */
   Layer3Device.prototype.setRoute = function(route) {
-    if (typeof route === 'array' || route instanceof Array) {
+    if (typeof route === 'object' || route instanceof Array) {
       if (route.length > 0 && !(route[0] instanceof Route))
         throw new Error('bad type')
       Array.prototype.push.apply(this.route, route)
@@ -323,16 +323,16 @@ function Layer3Device(interfaces, receiveCallBack = null, tcpReceiveCallback = n
    * @param {object}  data
    * @param {IPv4} srcIPaddr
    */
-  Layer3Device.prototype.send = function(srcPortName, destIPaddr, data, srcIPaddr = null) {
+  Layer3Device.prototype.send = function(srcPortName, destIPaddr, data, srcIPaddr) {
 
     if (typeof srcPortName !== 'string')
       { throw new Error('bad type') }
-    if (!(srcIPaddr instanceof IPv4 || srcIPaddr == null))
+    if (!(srcIPaddr instanceof IPv4 || srcIPaddr === undefined))
       { throw new Error('bad type') }
     if (!(destIPaddr instanceof IPv4))
       { throw new Error('bad type') }
 
-    if (srcIPaddr == null) {
+    if (srcIPaddr === undefined) {
       srcIPaddr = this.getInterface(srcPortName).ip
     }
 
@@ -350,23 +350,21 @@ function Layer3Device(interfaces, receiveCallBack = null, tcpReceiveCallback = n
 
     // ARPキャッシュを参照
     var nextHopMAC
-    for (var i = 0; i < this.arp.length; i++) {
-      var arp = this.arp[i]
+    this.arp.forEach(function(arp) {
       if (nextHopAddr.equals(arp[1])) {
         nextHopMAC = new MAC(arp[2])
-        break
+        return
       }
-    }
+    })
     if (!nextHopMAC){
       // ARPキャッシュに見つからなかった場合はARPリクエストを送信
       this.sendARPRequest(this.getInterface(srcPortName), nextHopAddr)
-      for (var i = 0; i < this.arp.length; i++) {
-        var arp = this.arp[i]
+      this.arp.forEach(function(arp) {
         if (nextHopAddr.equals(arp[1])) {
           nextHopMAC = new MAC(arp[2])
-          break
+          return
         }
-      }
+      })
       if (!nextHopMAC)
         return false // MACアドレスが見つからないため、パケット破棄
     }
@@ -407,7 +405,7 @@ function Layer3Device(interfaces, receiveCallBack = null, tcpReceiveCallback = n
   Layer3Device.prototype.sendARPResponse = function(srcPort, recv) {
 
     // 問い合わせIPアドレスを持っていなければ応答しない
-    if (!srcPort['ip'] || !srcPort.ip.equals(recv.data.destinationIPAddress))
+    if (!srcPort.ip || !srcPort.ip.equals(recv.data.destinationIPAddress))
       return false
 
     var arpRes = {
@@ -552,7 +550,7 @@ function Layer3Device(interfaces, receiveCallBack = null, tcpReceiveCallback = n
     var longest = 0 >>> 0, longestMatchRoute
     for (var i=0; i < this.route.length; i++) {
       var route = this.route[i]
-      if ((route.net.uint() & route.mask.uint()) == (destAddr.uint() & route.mask.uint())) {
+      if ((route.net.uint() & route.mask.uint()) === (destAddr.uint() & route.mask.uint())) {
         if (longest <= route.mask.uint()) {
           longestMatchRoute = route
           longest = route.mask.uint()

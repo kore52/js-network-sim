@@ -15,7 +15,7 @@ function MAC(macAddr) {
   // ff-ff-ff-ff-ff-ff のパターンマッチ
   var macAddrMatch1 = macAddr.match(/^([0-9a-fA-F]{2})[-:]([0-9a-fA-F]{2})[-:]([0-9a-fA-F]{2})[-:]([0-9a-fA-F]{2})[-:]([0-9a-fA-F]{2})[-:]([0-9a-fA-F]{2})$/)
   if (typeof macAddr === 'string' && macAddrMatch1) {
-    this.mac = macAddrMatch1.map((v) => {return parseInt(v, 16)})
+    this.mac = macAddrMatch1.map(function(v){return parseInt(v, 16)})
     this.mac = this.mac.slice(1)
     return
   }
@@ -24,7 +24,7 @@ function MAC(macAddr) {
   // FFFF.FFFF.FFFF のパターンマッチ
   var macAddrMatch2 = macAddr.match(/^([0-9a-fA-F]{2})([0-9a-fA-F]{2})[:.]([0-9a-fA-F]{2})([0-9a-fA-F]{2})[:.]([0-9a-fA-F]{2})([0-9a-fA-F]{2})$/)
   if (typeof macAddr === 'string' && macAddrMatch2) {
-    this.mac = macAddrMatch2.map((v) => {return parseInt(v, 16)})
+    this.mac = macAddrMatch2.map(function(v){return parseInt(v, 16)})
     this.mac = this.mac.slice(1)
     return
   }
@@ -36,12 +36,12 @@ function MAC(macAddr) {
    *  (書式: 00:00:00:00:00:00)
    */
   MAC.prototype.str = function() {
-    return ('0'+this.mac[0].toString(16)).slice(-2)
-      +':'+('0'+this.mac[1].toString(16)).slice(-2)
-      +':'+('0'+this.mac[2].toString(16)).slice(-2)
-      +':'+('0'+this.mac[3].toString(16)).slice(-2)
-      +':'+('0'+this.mac[4].toString(16)).slice(-2)
-      +':'+('0'+this.mac[5].toString(16)).slice(-2)
+    return ('0'+this.mac[0].toString(16)).slice(-2)+
+      ':'+('0'+this.mac[1].toString(16)).slice(-2)+
+      ':'+('0'+this.mac[2].toString(16)).slice(-2)+
+      ':'+('0'+this.mac[3].toString(16)).slice(-2)+
+      ':'+('0'+this.mac[4].toString(16)).slice(-2)+
+      ':'+('0'+this.mac[5].toString(16)).slice(-2)
   }
 
   /**
@@ -50,13 +50,55 @@ function MAC(macAddr) {
   MAC.prototype.equals = function(to) {
     var cmp = new MAC(to)
     for (var i=0; i<cmp.mac.length; i++) {
-      if (this.mac[i] != cmp.mac[i])
-        return false
+      if (this.mac[i] !== cmp.mac[i]) { return false }
     }
     return true
   }
 
 }())
+
+
+/**
+ * インターフェイス間の物理的・論理的接続を表現するクラス
+ */
+function Connection() {
+  this.connected = []
+}
+(function(){
+  Connection.prototype.connect = function($interface) {
+    if (this.connected.length > 2) throw new Error("too many connection")
+    this.connected.push($interface)
+  }
+
+  Connection.prototype.disconnect = function($interface) {
+    for (var i in this.connected) {
+      if (this.connected[i] === $interface) {
+        this.connected.splice(i, 1)
+      }
+    }
+  }
+
+  Connection.prototype.connected = function() {
+    return this.connected
+  }
+
+  /**
+   * データをConnectionの対向側に転送する
+   * @param {object} src  送信元インターフェイス
+   * @param {object} data 送信データ
+   */
+  Connection.prototype.transfer = function(src, data) {
+    var dest = this.otherSide(src)
+    if (dest == null) throw new Error('connection not established : ' + e)
+
+    return dest.device.receive(dest, data)
+  }
+
+  Connection.prototype.otherSide = function(one) {
+    return (one === this.connected[0]) ? this.connected[1] : this.connected[0]
+  }
+}())
+
 
 /**
  * ネットワークインターフェイス
@@ -64,23 +106,15 @@ function MAC(macAddr) {
  * @param {number}      vlan             VLAN_ID(0-4095)、default:1
  * @param {boolean}     isTrunk          true:トランクポート, false:アクセスポート(default)
  * @param {array|Range} trunkAllowedVlan トランクポート時許可するvlanの配列もしくは範囲
- * @param {MAC}         mac              MACアドレス
- * @param {IPv4}        ip               IPアドレス
- * @param {IPv4}        mask             サブネットマスク
  */
-function Interface(
-  name,
-  vlan = 1,
-  isTrunk = false,
-  trunkAllowedVlan = null
- ) {
+function Interface(name, vlan, isTrunk, trunkAllowedVlan) {
 
   this.name = name
-  this.vlan = vlan
+  this.vlan = (vlan !== undefined) ? vlan : 1
   this.isConnect = false
-  this.isTrunk = isTrunk
+  this.isTrunk = (isTrunk !== undefined) ? isTrunk : false
   this.isSwitchPort = true
-  this.trunkAllowedVlan = (trunkAllowedVlan) ? trunkAllowedVlan : new Range(0, 4095)
+  this.trunkAllowedVlan = (trunkAllowedVlan !== undefined) ? trunkAllowedVlan : new Range(0, 4095)
 
   return this
 }
@@ -91,8 +125,8 @@ function Interface(
    * @param {Interface} to 接続先
    */
   Interface.prototype.connect = function(to) {
-    if (this.isConnect) { throw new Error('interface already connected')}
-    if (!this.connection) this.connection = new Connection()
+    if (this.isConnect) { throw new Error('interface already connected') }
+    if (!this.connection) { this.connection = new Connection() }
 
     // 双方向で接続
     this.connection.connect(to)
@@ -130,7 +164,7 @@ function Interface(
    */
   Interface.prototype.transfer = function(data) {
     // 接続されていない場合は破棄
-    if (!this.isConnect) return
+    if (!this.isConnect) { return }
 
     return this.connection.transfer(this, data)
   }
@@ -143,6 +177,7 @@ function Interface(
     this.isTrunk = enable
   }
 }())
+
 
 /**
  * L2デバイスを表現
@@ -203,8 +238,9 @@ function Layer2Device(interfaces, receiveCallBack) {
     var destPort = this._searchPort(destMAC)
     if (destPort.length) {
       frame = this._processVlan(srcPort, destPort[0], frame)
-      if (frame)
+      if (frame) {
         return destPort[0].transfer(frame)
+      }
     }
 
     // MACテーブルに登録されていないのでブロードキャストする
@@ -219,8 +255,8 @@ function Layer2Device(interfaces, receiveCallBack) {
    * @param {array} ifname_and_mac インターフェイス名とMACアドレスが要素の配列
    */
   Layer2Device.prototype.setMAC = function(ifname_and_mac) {
-    if (!(ifname_and_mac instanceof Array)) return this
-    for (let i=0; i < ifname_and_mac.length; i++) {
+    if (!(ifname_and_mac instanceof Array)) { return this }
+    for (var i=0; i < ifname_and_mac.length; i++) {
       this.getInterface(ifname_and_mac[i][0]).mac = new MAC(ifname_and_mac[i][1])
     }
     return this
@@ -232,7 +268,7 @@ function Layer2Device(interfaces, receiveCallBack) {
    * @param {string} to     接続先インターフェイスオブジェクト
    */
   Layer2Device.prototype.connect = function(ifname, to) {
-    if (!(to instanceof Interface)) throw new Error('bad connect')
+    if (!(to instanceof Interface)) { throw new Error('bad connect') }
     this.getInterface(ifname).connect(to)
   }
 
@@ -242,7 +278,7 @@ function Layer2Device(interfaces, receiveCallBack) {
    * @param {string} from
    */
   Layer2Device.prototype.disconnect = function(ifname, from) {
-    if (!(from instanceof Interface)) throw new Error('bad connect')
+    if (!(from instanceof Interface)) { throw new Error('bad connect') }
     this.getInterface(ifname).disconnect(from)
   }
 
@@ -264,13 +300,13 @@ function Layer2Device(interfaces, receiveCallBack) {
    * @param {object} data        送信データ
    * @param {MAC}    srcMAC      送信元MACアドレス. (default:自動選択)
    */
-  Layer2Device.prototype.send = function(srcPortName, destMAC, data, srcMAC = null) {
+  Layer2Device.prototype.send = function(srcPortName, destMAC, data, srcMAC) {
 
     if (typeof srcPortName !== 'string') { throw new Error('bad type') }
-    if (!(srcMAC instanceof MAC || srcMAC == null)) { throw new Error('bad type') }
+    if (!(srcMAC instanceof MAC || srcMAC === undefined)) { throw new Error('bad type') }
     if (!(destMAC instanceof MAC)) { throw new Error('bad type') }
 
-    if (srcMAC == null) {
+    if (srcMAC === undefined) {
       srcMAC = this.getInterface(srcPortName).mac
     }
 
@@ -314,7 +350,7 @@ function Layer2Device(interfaces, receiveCallBack) {
   Layer2Device.prototype._delMacTable = function(ifname, mac) {
     var mac_obj = new MAC(mac)
     for (var i=0; i < this.macAddrTable.length; i++) {
-      if (ifname == this.macAddrTable[i][0] && mac_obj.equals(this.macAddrTable[i][1]))
+      if (ifname === this.macAddrTable[i][0] && mac_obj.equals(this.macAddrTable[i][1]))
         this.macAddrTable.splice(i, 1)
     }
   }
@@ -336,7 +372,7 @@ function Layer2Device(interfaces, receiveCallBack) {
    */
   Layer2Device.prototype._sendBroadcast = function(srcPort, interfaces, frame) {
     for (var i=0; i < interfaces.length; i++) {
-      if (srcPort.name == interfaces[i].name) continue
+      if (srcPort.name === interfaces[i].name) continue
 
       var processedFrame = this._processVlan(srcPort, interfaces[i], frame)
       if (processedFrame)
@@ -362,11 +398,11 @@ function Layer2Device(interfaces, receiveCallBack) {
   */
   Layer2Device.prototype._processVlan = function(srcPort, destPort, frame) {
 
+    var vlanArray;
     if (srcPort.isTrunk) {
 
       if (destPort.isTrunk) {
 
-        var vlanArray;
         if (destPort.trunkAllowedVlan instanceof Range)
           vlanArray = destPort.trunkAllowedVlan.array()
         else {
@@ -377,7 +413,7 @@ function Layer2Device(interfaces, receiveCallBack) {
           return // (d)
       } else {
         // if destPort is access port
-        if (frame.vid != destPort.vlan)
+        if (frame.vid !== destPort.vlan)
           return
         delete frame.vid // (c)
       }
@@ -386,7 +422,6 @@ function Layer2Device(interfaces, receiveCallBack) {
       // if srcPort is access port
       if (destPort.isTrunk) {
 
-        var vlanArray;
         if (destPort.trunkAllowedVlan instanceof Range)
           vlanArray = destPort.trunkAllowedVlan.array()
         else
@@ -398,7 +433,7 @@ function Layer2Device(interfaces, receiveCallBack) {
 
       } else {
         // if destPort is access port
-        if (srcPort.vlan != destPort.vlan)
+        if (srcPort.vlan !== destPort.vlan)
           return // (a)
       }
     }
@@ -427,45 +462,3 @@ function Layer2Device(interfaces, receiveCallBack) {
     return ifList
   }
 }())
-
-/**
- * インターフェイス間の物理的・論理的接続を表現するクラス
- */
-function Connection() {
-  this.connected = []
-}
-(function(){
-  Connection.prototype.connect = function($interface) {
-    if (this.connected.length > 2) throw new Error("too many connection")
-    this.connected.push($interface)
-  }
-
-  Connection.prototype.disconnect = function($interface) {
-    for (var i in this.connected) {
-      if (this.connected[i] === $interface) {
-        this.connected.splice(i, 1)
-      }
-    }
-  }
-
-  Connection.prototype.connected = function() {
-    return this.connected
-  }
-
-  /**
-   * データをConnectionの対向側に転送する
-   * @param {object} src  送信元インターフェイス
-   * @param {object} data 送信データ
-   */
-  Connection.prototype.transfer = function(src, data) {
-    var dest = this.otherSide(src)
-    if (dest == null) throw new Error('connection not established : ' + e)
-
-    return dest.device.receive(dest, data)
-  }
-
-  Connection.prototype.otherSide = function(one) {
-    return (one == this.connected[0]) ? this.connected[1] : this.connected[0]
-  }
-}())
-var i = 0

@@ -1,0 +1,23 @@
+{
+  "curly": false,
+  "eqnull": true,
+  "eqeqeq": true,
+  "evil": false,
+  "forin": true,
+  "immed": false,
+  "indent": 2,
+  "latedef": true,
+  "trailing" : true,
+  "unused": true,
+  "node": true,
+  "jquery": true,
+  "browser" : true,
+  "asi": true,
+  "globals": {
+    "describe" : false,
+    "it": false,
+    "before": false,
+    "after": false,
+    "define": false
+  }
+}

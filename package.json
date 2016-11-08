@@ -1,0 +1,27 @@
+{
+  "name": "js-network-sim",
+  "version": "1.0.0",
+  "description": "simulate packet transferring by javascript",
+  "main": "Gruntfile.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {
+    "grunt-cli": "^1.2.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "start": "node ./Gruntfile.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kore52/js-network-sim.git"
+  },
+  "author": "kore52",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kore52/js-network-sim/issues"
+  },
+  "homepage": "https://github.com/kore52/js-network-sim#readme"
+}
