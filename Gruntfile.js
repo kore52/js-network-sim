@@ -34,6 +34,10 @@ module.exports = function(grunt) {
         tasks: ['concat', 'uglify'],
       },
     },
+
+    mocha_phantomjs: {
+      all: ['tests/*.html']
+    }
   })
 
   grunt.loadNpmTasks('grunt-contrib-concat')
