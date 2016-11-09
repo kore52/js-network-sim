@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang='ja'>
+<head>
+  <meta charset="UTF-8">
+  <script type="text/javascript" src="../external/jquery-3.1.0.js"></script>
+  <script type="text/javascript" src="../external/mocha.js"></script>
+  <script type="text/javascript" src="../external/chai.js"></script>
+  <link rel="stylesheet" href="../external/mocha.css" />
+
+  <script type="text/javascript" src="../output/js/network.js"></script>
+
+  <script type="text/javascript" src="sample_test1.js"></script>
+
+</head>
+<body>
+  <div id="mocha"></div>
+  <script>
+    var add = function (arg1, arg2) {
+        return arg1 + arg2;
+    }
+    mocha.setup('bdd');
+    expect = chai.expect;
+
+    describe('add test', function() {
+      it('should return 3 when arg1 is 1 and arg2 is 2', function() {
+        expect(add(1,2)).to.be.equal(3);
+      });
+    });
+
+    mocha.run();
+  </script>
+</body>
+</html>
