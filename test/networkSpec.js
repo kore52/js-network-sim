@@ -16,7 +16,7 @@ describe('test test', function() {
   it('send ping PC1 to PC2', function() {
     var PC1 = new Layer3Device([new Interface('eth0')], function(srcPort, data){
       if (new MAC(data.destinationMACAddress).equals('11-22-33-44-55-01'))
-        assert.strictEqual(data.data, 'PC2->PC1')
+        assert.strictEqual(data.data.data, 'PC2->PC1')
     })
     .setMAC([['eth0', '11-22-33-44-55-01']])
     .setIP([['eth0', '192.168.0.1', '255.255.255.0']])
@@ -25,7 +25,7 @@ describe('test test', function() {
 
     var PC2 = new Layer3Device([new Interface('eth0')], function(srcPort, data){
       if (new MAC(data.destinationMACAddress).equals('11-22-33-44-55-02'))
-        assert.strictEqual(data.data, 'PC1->PC2')
+        assert.strictEqual(data.data.data, 'PC1->PC2')
     })
     .setMAC([['eth0', '11-22-33-44-55-02']])
     .setIP([['eth0', '192.168.10.1', '255.255.255.0']])
