@@ -6,12 +6,23 @@
   "directories": {
     "test": "test"
   },
-  "dependencies": {
-    "grunt-cli": "^1.2.0"
+  "dependencies": {},
+  "devDependencies": {
+    "grunt": "^1.0.1",
+    "grunt-cli": "^1.2.0",
+    "grunt-contrib-concat": "^1.0.1",
+    "grunt-contrib-jshint": "^1.0.0",
+    "grunt-contrib-uglify": "^2.0.0",
+    "grunt-contrib-watch": "^1.0.0",
+    "grunt-lib-phantomjs": "^1.1.0",
+    "grunt-mocha-phantomjs": "^4.0.0",
+    "jshint": "^2.9.4",
+    "minimatch": "^3.0.3",
+    "mocha": "^3.1.2",
+    "phantomjs": "^2.1.7",
+    "power-assert": "^1.4.1"
   },
-  "devDependencies": {},
   "scripts": {
-    "start": "node ./Gruntfile.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
