@@ -7,12 +7,12 @@ module.exports = function (config) {
 
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['mocha', 'browserify', 'chai', 'jquery'],
+    frameworks: ['mocha', 'browserify', 'chai'],
 
 
     // list of files / patterns to load in the browser
     files: [
-      'node_modules/jquery/dist/jquery.js'
+      'node_modules/jquery/dist/jquery.js',
       'node_modules/chai/chai.js',
       'node_modules/mocha/mocha.js',
       'node_modules/mocha/mocha.css',
@@ -74,6 +74,7 @@ module.exports = function (config) {
       'karma-browserify',
       'karma-coverage',
       'karma-spec-reporter',
+      'karma-jquery',
     ]
   });
 };

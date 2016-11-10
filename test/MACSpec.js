@@ -119,6 +119,12 @@ describe('Interface class', function() {
       expect(new Interface('test').trunkAllowedVlan).to.be.an.instanceof(Range)
     })
   })
+
+  describe('connect()', function() {
+    it('should connect to other Interface', function() {
+      expect(new Interface('test').connect(new Interface('test2'))).to.equal(true)
+    })
+  })
 })
 
 

@@ -125,7 +125,7 @@ function Interface(name, vlan, isTrunk, trunkAllowedVlan) {
 
   /**
    * インターフェイス接続
-   * @param {Interface} to 接続先
+   * @param {Interface} to 接続先インターフェイス
    */
   Interface.prototype.connect = function(to) {
     if (this.isConnect) { throw new Error('interface already connected') }
@@ -137,6 +137,8 @@ function Interface(name, vlan, isTrunk, trunkAllowedVlan) {
     to.connection.connect(this)
     this.isConnect = true
     to.isConnect = true
+
+    return true
   }
 
   /**
