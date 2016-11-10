@@ -7,12 +7,12 @@ module.exports = function (config) {
 
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['mocha', 'browserify', 'chai'],
+    frameworks: ['mocha', 'browserify', 'chai', 'jquery'],
 
 
     // list of files / patterns to load in the browser
     files: [
-      'external/jquery-3.1.0.js',
+      'node_modules/jquery/dist/jquery.js'
       'node_modules/chai/chai.js',
       'node_modules/mocha/mocha.js',
       'node_modules/mocha/mocha.css',

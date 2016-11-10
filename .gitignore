@@ -91,6 +91,3 @@ $RECYCLE.BIN/
 
 # Windows shortcuts
 *.lnk
-
-# externals
-external/*.js
