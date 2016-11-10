@@ -91,7 +91,7 @@ function IPv4(ip) {
   /**
    * 比較
    */
-  IPv4.prototype.equals = function(to) {
+  IPv4.prototype.equal = function(to) {
     return (this.uint() === new IPv4(to).uint())
   }
 }())
@@ -266,7 +266,7 @@ function Layer3Device(interfaces, receiveCallBack, tcpReceiveCallback) {
     var nextSrcPortName
     for (var i = 0; i < this.arp.length; i++) {
       var arp = this.arp[i]
-      if (nextHopAddr.equals(arp[1])) {
+      if (nextHopAddr.equal(arp[1])) {
         nextSrcPortName = arp[0]
         nextHopMAC = new MAC(arp[2])
         break
@@ -351,7 +351,7 @@ function Layer3Device(interfaces, receiveCallBack, tcpReceiveCallback) {
     // ARPキャッシュを参照
     var nextHopMAC
     this.arp.forEach(function(arp) {
-      if (nextHopAddr.equals(arp[1])) {
+      if (nextHopAddr.equal(arp[1])) {
         nextHopMAC = new MAC(arp[2])
         return
       }
@@ -360,7 +360,7 @@ function Layer3Device(interfaces, receiveCallBack, tcpReceiveCallback) {
       // ARPキャッシュに見つからなかった場合はARPリクエストを送信
       this.sendARPRequest(this.getInterface(srcPortName), nextHopAddr)
       this.arp.forEach(function(arp) {
-        if (nextHopAddr.equals(arp[1])) {
+        if (nextHopAddr.equal(arp[1])) {
           nextHopMAC = new MAC(arp[2])
           return
         }
@@ -405,7 +405,7 @@ function Layer3Device(interfaces, receiveCallBack, tcpReceiveCallback) {
   Layer3Device.prototype.sendARPResponse = function(srcPort, recv) {
 
     // 問い合わせIPアドレスを持っていなければ応答しない
-    if (!srcPort.ip || !srcPort.ip.equals(recv.data.destinationIPAddress))
+    if (!srcPort.ip || !srcPort.ip.equal(recv.data.destinationIPAddress))
       return false
 
     var arpRes = {

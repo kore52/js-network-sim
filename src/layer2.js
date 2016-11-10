@@ -17,7 +17,7 @@ function MAC(macAddr) {
   if (typeof macAddr === 'string' && macAddrMatch1) {
     this.mac = macAddrMatch1.map(function(v){return parseInt(v, 16)})
     this.mac = this.mac.slice(1)
-    return
+    return macAddr
   }
 
   // FFFF:FFFF:FFFF のパターンマッチ
@@ -26,8 +26,10 @@ function MAC(macAddr) {
   if (typeof macAddr === 'string' && macAddrMatch2) {
     this.mac = macAddrMatch2.map(function(v){return parseInt(v, 16)})
     this.mac = this.mac.slice(1)
-    return
+    return macAddr
   }
+
+  throw new Error('bad input')
 }
 (function(){
 
@@ -47,7 +49,7 @@ function MAC(macAddr) {
   /**
    * 比較
    */
-  MAC.prototype.equals = function(to) {
+  MAC.prototype.equal = function(to) {
     var cmp = new MAC(to)
     for (var i=0; i<cmp.mac.length; i++) {
       if (this.mac[i] !== cmp.mac[i]) { return false }
@@ -65,14 +67,16 @@ function Connection() {
   this.connected = []
 }
 (function(){
-  Connection.prototype.connect = function($interface) {
+  Connection.prototype.connect = function(interface) {
+    if (!(interface instanceof Interface)) throw new Error('bad type')
     if (this.connected.length > 2) throw new Error("too many connection")
-    this.connected.push($interface)
+    this.connected.push(interface)
   }
 
-  Connection.prototype.disconnect = function($interface) {
+  Connection.prototype.disconnect = function(interface) {
+    if (!(interface instanceof Interface)) throw new Error('bad type')
     for (var i in this.connected) {
-      if (this.connected[i] === $interface) {
+      if (this.connected[i] === interface) {
         this.connected.splice(i, 1)
       }
     }
@@ -113,7 +117,6 @@ function Interface(name, vlan, isTrunk, trunkAllowedVlan) {
   this.vlan = (vlan !== undefined) ? vlan : 1
   this.isConnect = false
   this.isTrunk = (isTrunk !== undefined) ? isTrunk : false
-  this.isSwitchPort = true
   this.trunkAllowedVlan = (trunkAllowedVlan !== undefined) ? trunkAllowedVlan : new Range(0, 4095)
 
   return this
@@ -230,7 +233,7 @@ function Layer2Device(interfaces, receiveCallBack) {
     this._addMacTable(srcPort.name, srcMAC)
 
     // ブロードキャストを処理
-    if (destMAC.equals('ff-ff-ff-ff-ff-ff')) {
+    if (destMAC.equal('ff-ff-ff-ff-ff-ff')) {
       return this._sendBroadcast(srcPort, this.interfaces, frame)
     }
 
@@ -333,7 +336,7 @@ function Layer2Device(interfaces, receiveCallBack) {
   Layer2Device.prototype._addMacTable = function(ifname, mac) {
     var macObj = new MAC(mac)
     for (var i=0; i < this.macAddrTable.length; i++) {
-      if (macObj.equals(this.macAddrTable[i][1])) {
+      if (macObj.equal(this.macAddrTable[i][1])) {
         this.macAddrTable[i] = [ifname, macObj]
         return
       }
@@ -350,7 +353,7 @@ function Layer2Device(interfaces, receiveCallBack) {
   Layer2Device.prototype._delMacTable = function(ifname, mac) {
     var mac_obj = new MAC(mac)
     for (var i=0; i < this.macAddrTable.length; i++) {
-      if (ifname === this.macAddrTable[i][0] && mac_obj.equals(this.macAddrTable[i][1]))
+      if (ifname === this.macAddrTable[i][0] && mac_obj.equal(this.macAddrTable[i][1]))
         this.macAddrTable.splice(i, 1)
     }
   }
@@ -450,7 +453,7 @@ function Layer2Device(interfaces, receiveCallBack) {
     var portList = [], ifList = []
     var macObj = new MAC(mac)
     for (var i=0; i < this.macAddrTable.length; i++) {
-      if(macObj.equals(this.macAddrTable[i][1])) {
+      if(macObj.equal(this.macAddrTable[i][1])) {
         portList.push(this.macAddrTable[i][0])
       }
     }
