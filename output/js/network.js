@@ -153,6 +153,8 @@ function Interface(name, vlan, isTrunk, trunkAllowedVlan) {
     from.connection.disconenct(this)
     this.connection = null
     this.isConnect = false
+
+    return true
   }
 
   /**

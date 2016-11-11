@@ -93,36 +93,61 @@ describe('MAC Class', function() {
 
 describe('Interface class', function() {
   describe('constructor', function() {
-    it('names should have string type', function() {
-      expect(new Interface('test').name).to.be.a('string')
+    it('should check whether name is string or not', function() {
+      expect(new Interface('eth0').name).to.be.a('string')
       expect(new Interface(1).name).to.not.be.a('string')
     })
 
-    it('vlan id should be 1 by default', function() {
-      expect(new Interface('test').vlan).to.equal(1)
+    it('should check whether vlan-id have 1 by default or not', function() {
+      expect(new Interface('eth0').vlan).to.equal(1)
     })
 
-    it('vlan id should have a value between 0 and 4095', function() {
-      expect(new Interface('test', 0).vlan).to.be.least(0)
-      expect(new Interface('test', 4095).vlan).to.be.below(4096)
+    it('should check whether vlan-id have a value between 0 and 4095 or not', function() {
+      expect(new Interface('eth0', 0).vlan).to.be.least(0)
+      expect(new Interface('eth0', 4095).vlan).to.be.below(4096)
     })
 
     it('should not connected by default', function() {
-      expect(new Interface('test').isConnect).to.equal(false)
+      expect(new Interface('eth0').isConnect).to.equal(false)
     })
 
     it('should not be a trunk port by default', function() {
-      expect(new Interface('test').isTrunk).to.equal(false)
+      expect(new Interface('eth0').isTrunk).to.equal(false)
     })
 
     it('should be all allowed vlan by default', function() {
-      expect(new Interface('test').trunkAllowedVlan).to.be.an.instanceof(Range)
+      expect(new Interface('eth0').trunkAllowedVlan).to.be.an.instanceof(Range)
     })
   })
 
   describe('connect()', function() {
+
     it('should connect to other Interface', function() {
-      expect(new Interface('test').connect(new Interface('test2'))).to.equal(true)
+      expect(new Interface('eth0').connect(new Interface('eth2'))).to.equal(true)
+    })
+
+    it('should throw an error if you try to connect to Interface that is already connected', function() {
+      var if1 = new Interface('eth1')
+      var if2 = new Interface('eth2')
+      var if3 = new Interface('eth3')
+      if1.connect(if2)
+      expect(function() { if1.connect(if3) }).to.throw(Error)
+    })
+
+    it('should throw an error if you try to connect to Interface that is already connected to another Interface', function() {
+      var if1 = new Interface('eth1')
+      var if2 = new Interface('eth2')
+      if1.connect(if2)
+      var if3 = new Interface('eth3')
+      expect(function() { if3.connect(if1)}).to.throw(Error)
+    })
+  })
+
+  describe('disconnect()', function() {
+
+    it('should throw an error if you try to disconnect from Interface that is no longer connected', function() {
+      var if1 = new Interface('eth1')
+      expect(function() { if1.disconnect() }).to.throw(Error)
     })
   })
 })

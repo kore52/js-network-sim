@@ -75,11 +75,7 @@ function Connection() {
 
   Connection.prototype.disconnect = function(interface) {
     if (!(interface instanceof Interface)) throw new Error('bad type')
-    for (var i in this.connected) {
-      if (this.connected[i] === interface) {
-        this.connected.splice(i, 1)
-      }
-    }
+    this.connected = []
   }
 
   Connection.prototype.connected = function() {
@@ -92,13 +88,13 @@ function Connection() {
    * @param {object} data 送信データ
    */
   Connection.prototype.transfer = function(src, data) {
-    var dest = this.otherSide(src)
+    var dest = this.opposite(src)
     if (dest == null) throw new Error('connection not established : ' + e)
 
     return dest.device.receive(dest, data)
   }
 
-  Connection.prototype.otherSide = function(one) {
+  Connection.prototype.opposite = function(one) {
     return (one === this.connected[0]) ? this.connected[1] : this.connected[0]
   }
 }())
@@ -128,7 +124,7 @@ function Interface(name, vlan, isTrunk, trunkAllowedVlan) {
    * @param {Interface} to 接続先インターフェイス
    */
   Interface.prototype.connect = function(to) {
-    if (this.isConnect) { throw new Error('interface already connected') }
+    if (this.isConnect) { throw new Error('interface is already connected') }
     if (!this.connection) { this.connection = new Connection() }
 
     // 双方向で接続
@@ -145,14 +141,14 @@ function Interface(name, vlan, isTrunk, trunkAllowedVlan) {
    * インターフェイス切断
    * @param {Interface} from 接続先
    */
-  Interface.prototype.disconnect = function(from) {
-    if (!this.connection) { throw new Error('call disconnect(), but IF is null') }
+  Interface.prototype.disconnect = function() {
+    if (!this.connection) { throw new Error('interface is no longer connected') }
 
-    // 双方向で切断
-    this.connection.disconnect(from)
-    from.connection.disconenct(this)
+    this.connection.disconnect(this)
     this.connection = null
     this.isConnect = false
+
+    return true
   }
 
   /**
@@ -218,7 +214,7 @@ function Layer2Device(interfaces, receiveCallBack) {
       return this.receiveCallback(srcDevice, recv)
     }
 
-    var srcSwitchPort = srcDevice.getConnection().otherSide(srcDevice)
+    var srcSwitchPort = srcDevice.getConnection().opposite(srcDevice)
     return this.transfer(srcSwitchPort, new MAC(recv.sourceMACAddress), new MAC(recv.destinationMACAddress), recv)
   }
 
