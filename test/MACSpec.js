@@ -150,13 +150,50 @@ describe('Interface class', function() {
       expect(function() { if1.disconnect() }).to.throw(Error)
     })
   })
+
+  describe('getConnection()', function() {
+
+    it('should get a Connection object after it has connected to other interface', function() {
+      var if1 = new Interface('eth1')
+      var if2 = new Interface('eth2')
+      if1.connect(if2)
+      expect(if1.getConnection()).to.be.an.instanceof(Connection)
+    })
+
+    it('should return an undefined when it still does not connect to other interface', function() {
+      var if1 = new Interface('eth1')
+      expect(if1.getConnection()).to.equal(undefined)
+    })
+
+    it('should return an undefined after it has disconnected from other interface', function() {
+      var if1 = new Interface('eth1')
+      var if2 = new Interface('eth2')
+      if1.connect(if2)
+      if1.disconnect()
+      expect(if1.getConnection()).to.equal(undefined)
+    })
+  })
+
+  describe('transfer()', function() {
+
+    it('should return an undefined when it still does not connect to other interface', function() {
+      var if1 = new Interface('eth1')
+      expect(if1.transfer({})).to.equal(undefined)
+    })
+  })
 })
 
 
 describe('Connection class', function() {
   describe('connect()', function() {
     it('should be put Interface in', function() {
+      var conn = new Connection()
+      expect(conn.connect(new Interface('eth0'))).to.equal(true)
+    })
 
+    it('should throw an Error if you try to not put Interface in', function() {
+      var conn = new Connection()
+      expect(function() { conn.connect() }).to.throw(Error)
     })
   })
 })

@@ -71,11 +71,13 @@ function Connection() {
     if (!(interface instanceof Interface)) throw new Error('bad type')
     if (this.connected.length > 2) throw new Error("too many connection")
     this.connected.push(interface)
+    return true
   }
 
   Connection.prototype.disconnect = function(interface) {
     if (!(interface instanceof Interface)) throw new Error('bad type')
     this.connected = []
+    return true
   }
 
   Connection.prototype.connected = function() {
@@ -121,18 +123,19 @@ function Interface(name, vlan, isTrunk, trunkAllowedVlan) {
 
   /**
    * インターフェイス接続
-   * @param {Interface} to 接続先インターフェイス
+   * @param {Interface} dest 接続先インターフェイス
    */
-  Interface.prototype.connect = function(to) {
-    if (this.isConnect) { throw new Error('interface is already connected') }
+  Interface.prototype.connect = function(dest) {
+    if (this.isConnect) { throw new Error('this interface is already connected') }
+    if (dest.isConnect) { throw new Error('destination interface is already connected.')}
     if (!this.connection) { this.connection = new Connection() }
 
     // 双方向で接続
-    this.connection.connect(to)
-    to.connection = this.connection
-    to.connection.connect(this)
+    this.connection.connect(dest)
+    dest.connection = this.connection
+    dest.connection.connect(this)
     this.isConnect = true
-    to.isConnect = true
+    dest.isConnect = true
 
     return true
   }
@@ -142,10 +145,10 @@ function Interface(name, vlan, isTrunk, trunkAllowedVlan) {
    * @param {Interface} from 接続先
    */
   Interface.prototype.disconnect = function() {
-    if (!this.connection) { throw new Error('interface is no longer connected') }
+    if (!this.connection) { throw new Error('interface has no longer connected.') }
 
     this.connection.disconnect(this)
-    this.connection = null
+    this.connection = undefined
     this.isConnect = false
 
     return true
