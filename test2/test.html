@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang='ja'>
+<head>
+  <meta charset="UTF-8">
+  <script type="text/javascript" src="../src/layer2.js"></script>
+  <script type="text/javascript" src="../node_modules/chai/chai.js"></script>
+  <script type="text/javascript" src="../src/util.js"></script>
+  <script type="text/javascript">
+  var expect = chai.expect
+  
+      var dev0 = new Layer2Device([new Interface('eth0', 2, true), new Interface('eth1', 3, true, [3])])
+      expect(dev0._processVlan(dev0.getInterface('eth0'), dev0.getInterface('eth1'), {'vid': 2, 'data': 'dummy'})).to.be.undefined
+
+
+
+  </script>
+</head>
+</html>

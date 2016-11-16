@@ -55,14 +55,4 @@ describe('Connection class', function() {
   })
 
 
-  describe('getConnection()', function() {
-    it('should get a Connection object', function() {
-      var conn = new Connection()
-      expect(conn.connected()).to.be.an.instanceof(Array)
-
-      conn.connect(new Interface('eth0'))
-      expect(conn.connected()).to.be.an.instanceof(Array)
-      expect(conn.connected()[0]).to.be.an.instanceof(Interface)
-    })
-  })
 })

@@ -48,4 +48,4 @@ function Range(begin, end) {
     }
     return arr
   }
-})
+})()
