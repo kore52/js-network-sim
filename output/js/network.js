@@ -90,8 +90,7 @@ function Connection() {
   Connection.prototype.transfer = function(src, data) {
     var dest = this.opposite(src)
     if (dest == null) throw new Error('connection not established : ' + e)
-
-    return dest.device.receive(dest, data)
+    return dest.device.receive(src, data)
   }
 
   Connection.prototype.opposite = function(one) {
@@ -260,7 +259,7 @@ function Layer2Device(interfaces, receiveCallback) {
    * @param {array} ifname_and_mac インターフェイス名とMACアドレスが要素の配列
    */
   Layer2Device.prototype.setMAC = function(ifname_and_mac) {
-    if (!(ifname_and_mac instanceof Array)) { return this }
+    if (!(ifname_and_mac instanceof Array)) { throw new Error('wrong type of argument') }
     for (var i=0; i < ifname_and_mac.length; i++) {
       this.getInterface(ifname_and_mac[i][0]).mac = new MAC(ifname_and_mac[i][1])
     }
@@ -275,7 +274,7 @@ function Layer2Device(interfaces, receiveCallback) {
   Layer2Device.prototype.connect = function(ifname, to) {
     if (typeof ifname !== 'string') { throw new Error('bad connection: ifname is not string') }
     if (!(to instanceof Interface)) { throw new Error('bad connection: to is not interface') }
-    this.getInterface(ifname).connect(to)
+    return this.getInterface(ifname).connect(to)
   }
 
   /**
@@ -283,10 +282,11 @@ function Layer2Device(interfaces, receiveCallback) {
    * @param {string} ifname
    * @param {string} from
    */
-  Layer2Device.prototype.disconnect = function(ifname, from) {
-    if (typeof ifname !== 'string') { throw new Error('bad connection: ifname is not string') }
-    if (!(from instanceof Interface)) { throw new Error('bad connection: from is not interface') }
-    this.getInterface(ifname).disconnect(from)
+  Layer2Device.prototype.disconnect = function(ifname) {
+    if (typeof ifname !== 'string') { throw new Error('ifname is not string') }
+    if (this.getInterface(ifname) === undefined) { throw new Error('wrong interface name') }
+    if (!this.getInterface(ifname).isConnect) { throw new Error('this is no longer connected') }
+    return this.getInterface(ifname).disconnect()
   }
 
   /**
@@ -408,10 +408,17 @@ function Layer2Device(interfaces, receiveCallback) {
   */
   Layer2Device.prototype._processVlan = function(srcPort, destPort, frame) {
 
+    if (!(srcPort instanceof Interface)) { throw new Error('bad type') }
+    if (!(destPort instanceof Interface)) { throw new Error('bad type') }
+
     var vlanArray;
     if (srcPort.isTrunk) {
 
       if (destPort.isTrunk) {
+
+        // if:
+        //   srcPort is trunk port
+        //   destPort is trunk port
 
         if (destPort.trunkAllowedVlan instanceof Range)
           vlanArray = destPort.trunkAllowedVlan.array()
@@ -421,16 +428,25 @@ function Layer2Device(interfaces, receiveCallback) {
 
         if (vlanArray.indexOf(frame.vid) < 0)
           return // (d)
+
       } else {
-        // if destPort is access port
+
+        // if:
+        //   srcPort is trunk port
+        //   destPort is access port
+
         if (frame.vid !== destPort.vlan)
           return
         delete frame.vid // (c)
       }
 
     } else {
-      // if srcPort is access port
+
       if (destPort.isTrunk) {
+
+        // if:
+        //   srcPort is access port
+        //   destPort is trunk port
 
         if (destPort.trunkAllowedVlan instanceof Range)
           vlanArray = destPort.trunkAllowedVlan.array()
@@ -442,7 +458,11 @@ function Layer2Device(interfaces, receiveCallback) {
         frame.vid = srcPort.vlan // (b)
 
       } else {
-        // if destPort is access port
+
+        // if:
+        //   srcPort is access port
+        //   destPort is access port
+
         if (srcPort.vlan !== destPort.vlan)
           return // (a)
       }
@@ -1085,4 +1105,4 @@ function Range(begin, end) {
     }
     return arr
   }
-})
+})()
