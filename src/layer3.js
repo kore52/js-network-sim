@@ -1,8 +1,11 @@
+var REGEX_IPV4 = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
+
 /**
  * IPv4アドレスを表現するクラス
  */
 function IPv4(ip) {
   this.set(ip)
+  return this
 }
 (function(){
 
@@ -12,8 +15,7 @@ function IPv4(ip) {
    * @param {string} str 検査文字列
    */
   IPv4.isValid = function(str) {
-    var regexIP = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
-    return (str.match(regexIP)) ? true : false
+    return (str.match(REGEX_IPV4)) ? true : false
   }
 
   /**
@@ -21,35 +23,29 @@ function IPv4(ip) {
    * @param {number|string|object} IPアドレス
    */
   IPv4.prototype.set = function(ip) {
-    try {
-      if (ip == null) {
-        this.octet = [null, null, null, null]
-        return
-      }
-
-      if (typeof ip === 'number') {
-        ip = ip >>> 0
-        this.octet = [(ip & (0xff << 24)) >>> 24, (ip & (0xff << 16)) >>> 16, (ip & (0xff << 8)) >>> 8, ip & 0xff]
-        return
-      }
-      else if (ip instanceof IPv4) {
-        this.octet = ip.octet
-        return
-      }
-
-      var regexIP = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
-      if (!ip.match(regexIP)) {
-        throw new Error("bad address.: " + ip)
-      }
-
-      this.octet = regexIP.exec(ip).slice(1).map(function(o) { return parseInt(o) })
-      for (var n in this.octet)
-        if (this.octet[n] < 0 || 255 < this.octet[n]) throw new Error("Invalid ip range.: " + ip)
-      return
+    if (ip == null || ip == undefined) {
+      this.octet = [null, null, null, null]
+      return true
     }
-    catch(e) {
-      console.log(e)
+
+    if (typeof ip === 'number') {
+      ip = ip >>> 0
+      this.octet = [(ip & (0xff << 24)) >>> 24, (ip & (0xff << 16)) >>> 16, (ip & (0xff << 8)) >>> 8, ip & 0xff]
+      return true
     }
+    else if (ip instanceof IPv4) {
+      this.octet = ip.octet
+      return true
+    }
+
+    if (!this.isValid(ip)) {
+      throw new Error('bad format: ' + ip)
+    }
+
+    this.octet = REGEX_IPV4.exec(ip).slice(1).map(function(o) { return parseInt(o) })
+    for (var n in this.octet)
+      if (this.octet[n] < 0 || 255 < this.octet[n]) throw new Error("Invalid ip range.: " + ip)
+    return true
   }
 
   /**
